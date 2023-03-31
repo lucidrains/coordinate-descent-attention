@@ -1,6 +1,6 @@
 ## Coordinate Descent Attention (wip)
 
-Implementation of an Attention layer where each head can attend to more than just one token, using coordinate descent to pick topk.
+Implementation of an Attention layer where each head can attend to more than just one token, using coordinate descent to pick topk. Perhaps the number of tokens to attend to can even be learned.
 
 ## Citations
 
