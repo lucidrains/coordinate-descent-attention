@@ -68,7 +68,8 @@ class Attention(nn.Module):
         coor_descent_iters = 50,
         coor_descent_sparsity_k = 1,
         coor_descent_eps = 1e-1,
-        attn_null_kv = 0
+        attn_null_kv = 0,
+        learned_sparsity_k = False
     ):
         super().__init__()
         self.scale = dim_head ** -0.5
@@ -79,6 +80,11 @@ class Attention(nn.Module):
         self.coor_descent_iters = coor_descent_iters
         self.coor_descent_sparsity_k = coor_descent_sparsity_k
         self.coor_descent_eps = coor_descent_eps
+
+        self.to_learned_k = None
+        if learned_sparsity_k:
+            self.to_learned_k = nn.Linear(dim, heads)
+            nn.init.constant_(self.to_learned_k.bias, -10)
 
         self.norm = nn.LayerNorm(dim)
 
@@ -114,8 +120,13 @@ class Attention(nn.Module):
         # whether to use coordinate descent or not
 
         if self.use_coor_descent:
-            sparsity_k = torch.ones(i, device = device, dtype = dtype) * self.coor_descent_sparsity_k
-            sparsity_k = rearrange(sparsity_k, 'i -> i 1')
+
+            if exists(self.to_learned_k):
+                sparsity_k = self.to_learned_k(x).sigmoid() * (self.coor_descent_sparsity_k - 1) + 1
+                sparsity_k = rearrange(sparsity_k, 'b i h -> b h i 1')
+            else:
+                sparsity_k = torch.ones(i, device = device, dtype = dtype) * self.coor_descent_sparsity_k
+                sparsity_k = rearrange(sparsity_k, 'i -> i 1')
 
             attn = coor_descent(
                 sim,
@@ -154,7 +165,8 @@ class Transformer(nn.Module):
         coor_descent_iters = 50,
         coor_descent_sparsity_k = 1,
         coor_descent_eps = 1e-1,
-        attn_null_kv = 0
+        attn_null_kv = 0,
+        learned_sparsity_k = False
     ):
         super().__init__()
         self.seq_len = seq_len
@@ -173,7 +185,8 @@ class Transformer(nn.Module):
                     coor_descent_iters = coor_descent_iters,
                     coor_descent_sparsity_k = coor_descent_sparsity_k,
                     coor_descent_eps = coor_descent_eps,
-                    attn_null_kv = attn_null_kv
+                    attn_null_kv = attn_null_kv,
+                    learned_sparsity_k = learned_sparsity_k
                 ),
                 FeedForward(dim, ff_mult)
             ]))
