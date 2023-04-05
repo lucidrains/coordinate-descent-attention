@@ -33,6 +33,10 @@ x = torch.randint(0, 256, (1, 2048)).cuda()
 logits = model(x)
 ```
 
+## Todo
+
+- [ ] ablate with topk attention, make sure it isn't because of hard attention
+
 ## Citations
 
 ```bibtex

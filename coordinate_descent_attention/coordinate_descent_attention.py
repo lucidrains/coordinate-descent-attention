@@ -66,7 +66,8 @@ class Attention(nn.Module):
         heads = 8,
         use_coor_descent = False,
         coor_descent_iters = 50,
-        coor_descent_sparsity_k = 1
+        coor_descent_sparsity_k = 1,
+        coor_descent_eps = 1e-1
     ):
         super().__init__()
         self.scale = dim_head ** -0.5
@@ -76,6 +77,7 @@ class Attention(nn.Module):
         self.use_coor_descent = use_coor_descent
         self.coor_descent_iters = coor_descent_iters
         self.coor_descent_sparsity_k = coor_descent_sparsity_k
+        self.coor_descent_eps = coor_descent_eps
 
         self.norm = nn.LayerNorm(dim)
 
@@ -107,6 +109,7 @@ class Attention(nn.Module):
                 sim,
                 n_iters = self.coor_descent_iters,
                 k = sparsity_k,
+                eps = self.coor_descent_eps,
                 mask = ~causal_mask
             )
         else:
@@ -137,7 +140,8 @@ class Transformer(nn.Module):
         ff_mult = 4,
         use_coor_descent = False,
         coor_descent_iters = 50,
-        coor_descent_sparsity_k = 1
+        coor_descent_sparsity_k = 1,
+        coor_descent_eps = 1e-1
     ):
         super().__init__()
         self.seq_len = seq_len
@@ -154,7 +158,8 @@ class Transformer(nn.Module):
                     heads = heads,
                     use_coor_descent = use_coor_descent,
                     coor_descent_iters = coor_descent_iters,
-                    coor_descent_sparsity_k = coor_descent_sparsity_k
+                    coor_descent_sparsity_k = coor_descent_sparsity_k,
+                    coor_descent_eps = coor_descent_eps
                 ),
                 FeedForward(dim, ff_mult)
             ]))
