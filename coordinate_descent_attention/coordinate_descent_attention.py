@@ -63,12 +63,17 @@ class Attention(nn.Module):
         self,
         dim,
         dim_head = 64,
-        heads = 8
+        heads = 8,
+        use_coor_descent = False,
+        coor_descent_iters = 50
     ):
         super().__init__()
         self.scale = dim_head ** -0.5
         self.heads = heads
         dim_inner = dim_head * heads
+
+        self.use_coor_descent = use_coor_descent
+        self.coor_descent_iters = coor_descent_iters
 
         self.norm = nn.LayerNorm(dim)
 
@@ -76,21 +81,41 @@ class Attention(nn.Module):
         self.to_out = nn.Linear(dim_inner, dim, bias = False)
 
     def forward(self, x):
-        n, h, device = x.shape[-2], self.heads, x.device
+        n, h, device, dtype = x.shape[-2], self.heads, x.device, x.dtype
         x = self.norm(x)
+
+        # get queries, keys, values, and split heads
 
         q, k, v = self.to_qkv(x).chunk(3, dim = -1)
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = h), (q, k, v))
+
+        # measure similarity
 
         q = q * self.scale
         sim = einsum('b h i d, b h j d -> b h i j', q, k)
 
         causal_mask = torch.ones((n, n), device = device, dtype = torch.bool).triu(1)
-        sim = sim.masked_fill(causal_mask, -torch.finfo(sim.dtype).max)
 
-        attn = sim.softmax(dim = -1)
+        # whether to use coordinate descent or not
+
+        if self.use_coor_descent:
+            sparsity_k = torch.ones(n, device = device, dtype = dtype)
+
+            attn = coor_descent(
+                sim,
+                n_iters = self.coor_descent_iters,
+                k = sparsity_k,
+                mask = ~causal_mask
+            )
+        else:
+            sim = sim.masked_fill(causal_mask, -torch.finfo(sim.dtype).max)
+            attn = sim.softmax(dim = -1)
+
+        # aggregate
 
         out = einsum('b h i j, b h j d -> b h i d', attn, v)
+
+        # combine heads
 
         out = rearrange(out, 'b h n d -> b n (h d)')
         return self.to_out(out)
@@ -107,7 +132,9 @@ class Transformer(nn.Module):
         depth,
         dim_head = 64,
         heads = 8,
-        ff_mult = 4
+        ff_mult = 4,
+        use_coor_descent = False,
+        coor_descent_iters = 50
     ):
         super().__init__()
         self.seq_len = seq_len
@@ -118,7 +145,13 @@ class Transformer(nn.Module):
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
-                Attention(dim, dim_head = dim_head, heads = heads),
+                Attention(
+                    dim,
+                    dim_head = dim_head,
+                    heads = heads,
+                    use_coor_descent = use_coor_descent,
+                    coor_descent_iters = coor_descent_iters
+                ),
                 FeedForward(dim, ff_mult)
             ]))
 
