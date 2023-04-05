@@ -2,6 +2,8 @@
 
 Implementation of an Attention layer where each head can attend to more than just one token, using coordinate descent to pick topk. Perhaps the number of tokens to attend to can even be learned.
 
+In the case that experiments above fail, will use the repo for a few other ideas, among them getting coordinate descent routing working for autoregressive transformers.
+
 <a href="https://api.wandb.ai/links/lucidrains/7amjt5kw">Ongoing experiments</a>
 
 ## Install
