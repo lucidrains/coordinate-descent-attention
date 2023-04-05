@@ -65,7 +65,8 @@ class Attention(nn.Module):
         dim_head = 64,
         heads = 8,
         use_coor_descent = False,
-        coor_descent_iters = 50
+        coor_descent_iters = 50,
+        coor_descent_sparsity_k = 1
     ):
         super().__init__()
         self.scale = dim_head ** -0.5
@@ -74,6 +75,7 @@ class Attention(nn.Module):
 
         self.use_coor_descent = use_coor_descent
         self.coor_descent_iters = coor_descent_iters
+        self.coor_descent_sparsity_k = coor_descent_sparsity_k
 
         self.norm = nn.LayerNorm(dim)
 
@@ -99,7 +101,7 @@ class Attention(nn.Module):
         # whether to use coordinate descent or not
 
         if self.use_coor_descent:
-            sparsity_k = torch.ones(n, device = device, dtype = dtype)
+            sparsity_k = torch.ones(n, device = device, dtype = dtype) * self.coor_descent_sparsity_k
 
             attn = coor_descent(
                 sim,
@@ -134,7 +136,8 @@ class Transformer(nn.Module):
         heads = 8,
         ff_mult = 4,
         use_coor_descent = False,
-        coor_descent_iters = 50
+        coor_descent_iters = 50,
+        coor_descent_sparsity_k = 1
     ):
         super().__init__()
         self.seq_len = seq_len
@@ -150,7 +153,8 @@ class Transformer(nn.Module):
                     dim_head = dim_head,
                     heads = heads,
                     use_coor_descent = use_coor_descent,
-                    coor_descent_iters = coor_descent_iters
+                    coor_descent_iters = coor_descent_iters,
+                    coor_descent_sparsity_k = coor_descent_sparsity_k
                 ),
                 FeedForward(dim, ff_mult)
             ]))
