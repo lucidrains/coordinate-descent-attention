@@ -36,6 +36,7 @@ logits = model(x)
 ## Todo
 
 - [ ] ablate with topk attention, make sure it isn't because of hard attention
+- [ ] let the network control sparsity k, potentially with maximum scaled as log(seq_len)
 
 ## Citations
 
