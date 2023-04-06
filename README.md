@@ -6,6 +6,8 @@ In the case that experiments above fail, will use the repo for a few other ideas
 
 <a href="https://api.wandb.ai/links/lucidrains/7amjt5kw">Ongoing experiments</a>
 
+Update: I don't think the improvements are worth it. The memory usage becomes impractical as the number of iterations goes up as well. I'll keep playing around with topk attention though, because it bothers me that softmax becomes a bottleneck for the tokens far in the future, especially as sequence lengths go above 8k
+
 ## Install
 
 ```bash
