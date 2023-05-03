@@ -8,6 +8,8 @@ In the case that experiments above fail, will use the repo for a few other ideas
 
 Update: I don't think the improvements are worth it. The memory usage becomes impractical as the number of iterations goes up as well. I'll keep playing around with topk attention though, because it bothers me that softmax becomes a bottleneck for the tokens far in the future, especially as sequence lengths go above 8k
 
+Update: Using a kernel written in Triton, it is a bit more viable, but still too much if number of iterations is high
+
 ## Appreciation
 
 - <a href="https://stability.ai/">StabilityAI</a> for the sponsorship to carry out independent research

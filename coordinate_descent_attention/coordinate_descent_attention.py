@@ -4,6 +4,8 @@ from torch import nn, einsum
 
 from einops import rearrange, repeat
 
+from colt5_attention.triton_coor_descent import triton_coor_descent
+
 # helpers
 
 def exists(val):
@@ -11,40 +13,6 @@ def exists(val):
 
 def default(val, d):
     return val if exists(val) else d
-
-# tensor helpers
-
-def log(t, eps = 1e-20):
-    return torch.log(t.clamp(min = eps))
-
-# coordinate descent helpers
-
-def coor_descent(
-    s,
-    *,
-    n_iters,
-    k,
-    eps = 1e-1,
-    clamp_fn = F.relu,
-    mask = None,
-):
-    mask_value = -torch.finfo(s.dtype).max
-    constant = eps * log(k)
-
-    b = -clamp_fn(s)
-
-    for _ in range(n_iters):
-        if exists(mask):
-            s = s.masked_fill(~mask, mask_value)
-
-        a = constant - eps * ((s + b) / eps).logsumexp(dim = -1, keepdim = True)
-        b = -clamp_fn(s + a)
-
-    if exists(mask):
-        s = s.masked_fill(~mask, mask_value)
-
-    scores = ((s + a + b) / eps).exp()
-    return scores
 
 # classes
 
@@ -123,12 +91,13 @@ class Attention(nn.Module):
 
             if exists(self.to_learned_k):
                 sparsity_k = self.to_learned_k(x).sigmoid() * (self.coor_descent_sparsity_k - 1) + 1
-                sparsity_k = rearrange(sparsity_k, 'b i h -> b h i 1')
+                sparsity_k = rearrange(sparsity_k, 'b i h -> (b h i)')
             else:
                 sparsity_k = torch.ones(i, device = device, dtype = dtype) * self.coor_descent_sparsity_k
-                sparsity_k = rearrange(sparsity_k, 'i -> i 1')
 
-            attn = coor_descent(
+            causal_mask = repeat(causal_mask, 'i j -> b h i j', b = sim.shape[0], h = sim.shape[1])
+
+            attn = triton_coor_descent(
                 sim,
                 n_iters = self.coor_descent_iters,
                 k = sparsity_k,
@@ -162,8 +131,8 @@ class Transformer(nn.Module):
         heads = 8,
         ff_mult = 4,
         use_coor_descent = False,
-        coor_descent_iters = 50,
-        coor_descent_sparsity_k = 1,
+        coor_descent_iters = 15,
+        coor_descent_sparsity_k = 2,
         coor_descent_eps = 1e-1,
         attn_null_kv = 0,
         learned_sparsity_k = False

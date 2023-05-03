@@ -41,7 +41,10 @@ model = Transformer(
     num_tokens = 256,
     dim = 512,
     depth = 8,
-    seq_len = SEQ_LEN
+    seq_len = SEQ_LEN,
+    use_coor_descent = True,
+    coor_descent_iters = 15,
+    coor_descent_sparsity_k = 2
 )
 
 model = AutoregressiveWrapper(model).cuda()
