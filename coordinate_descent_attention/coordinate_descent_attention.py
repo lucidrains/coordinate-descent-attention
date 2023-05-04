@@ -4,6 +4,7 @@ from torch import nn, einsum
 
 from einops import rearrange, repeat
 
+from colt5_attention import coor_descent
 from colt5_attention.triton_coor_descent import triton_coor_descent
 
 # helpers
@@ -45,9 +46,12 @@ class Attention(nn.Module):
         dim_inner = dim_head * heads
 
         self.use_coor_descent = use_coor_descent
+
         self.coor_descent_iters = coor_descent_iters
         self.coor_descent_sparsity_k = coor_descent_sparsity_k
         self.coor_descent_eps = coor_descent_eps
+
+        self.coor_descent_fn = coor_descent if learned_sparsity_k else triton_coor_descent
 
         self.to_learned_k = None
         if learned_sparsity_k:
@@ -97,13 +101,14 @@ class Attention(nn.Module):
 
             causal_mask = repeat(causal_mask, 'i j -> b h i j', b = sim.shape[0], h = sim.shape[1])
 
-            attn = triton_coor_descent(
+            attn = self.coor_descent_fn(
                 sim,
                 n_iters = self.coor_descent_iters,
                 k = sparsity_k,
                 eps = self.coor_descent_eps,
                 mask = ~causal_mask
             )
+
         else:
             sim = sim.masked_fill(causal_mask, -torch.finfo(sim.dtype).max)
             attn = sim.softmax(dim = -1)
