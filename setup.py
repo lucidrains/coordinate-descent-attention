@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
   name = 'coordinate-descent-attention',
   packages = find_packages(exclude=[]),
-  version = '0.0.7',
+  version = '0.0.8',
   license='MIT',
   description = 'Coordinate Descent Attention - Pytorch',
   author = 'Phil Wang',
@@ -18,7 +18,7 @@ setup(
   install_requires=[
     'einops>=0.6.1',
     'torch>=1.6',
-    'colt5-attention>=0.5.0'
+    'colt5-attention>=0.5.2'
   ],
   classifiers=[
     'Development Status :: 4 - Beta',

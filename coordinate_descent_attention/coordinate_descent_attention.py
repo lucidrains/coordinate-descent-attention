@@ -51,8 +51,6 @@ class Attention(nn.Module):
         self.coor_descent_sparsity_k = coor_descent_sparsity_k
         self.coor_descent_eps = coor_descent_eps
 
-        self.coor_descent_fn = coor_descent if learned_sparsity_k else triton_coor_descent
-
         self.to_learned_k = None
         if learned_sparsity_k:
             self.to_learned_k = nn.Linear(dim, heads)
@@ -101,7 +99,7 @@ class Attention(nn.Module):
 
             causal_mask = repeat(causal_mask, 'i j -> b h i j', b = sim.shape[0], h = sim.shape[1])
 
-            attn = self.coor_descent_fn(
+            attn = triton_coor_descent(
                 sim,
                 n_iters = self.coor_descent_iters,
                 k = sparsity_k,
