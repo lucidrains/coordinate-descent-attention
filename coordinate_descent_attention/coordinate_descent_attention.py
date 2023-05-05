@@ -104,7 +104,8 @@ class Attention(nn.Module):
                 n_iters = self.coor_descent_iters,
                 k = sparsity_k,
                 eps = self.coor_descent_eps,
-                mask = ~causal_mask
+                mask = ~causal_mask,
+                checkpoint_segments = self.coor_descent_iters // 10
             )
 
         else:
