@@ -10,6 +10,8 @@ Update: I don't think the improvements are worth it. The memory usage becomes im
 
 Update: Using a kernel written in Triton, it is a bit more viable, but still too much if number of iterations is high
 
+Update: by doing recomputes in segments of iterations, now feasible, if it were to actually yields any improvements
+
 ## Appreciation
 
 - <a href="https://stability.ai/">StabilityAI</a> for the sponsorship to carry out independent research
