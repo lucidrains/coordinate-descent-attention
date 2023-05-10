@@ -17,15 +17,48 @@ def default(val, d):
 
 # classes
 
-def FeedForward(dim, mult = 4):
-    dim_hidden = int(dim * mult)
+class FeedForward(nn.Module):
+    def __init__(
+        self,
+        dim,
+        mult = 4,
+        use_coor_descent = False,
+        coor_descent_iters = 50,
+        coor_descent_sparsity_k = None,
+        coor_descent_eps = 1e-1,
+    ):
+        super().__init__()
 
-    return nn.Sequential(
-        nn.LayerNorm(dim),
-        nn.Linear(dim, dim_hidden),
-        nn.GELU(),
-        nn.Linear(dim_hidden, dim)
-    )
+        dim_hidden = int(dim * mult)
+
+        self.use_coor_descent = use_coor_descent
+
+        self.coor_descent_iters = coor_descent_iters
+        self.coor_descent_sparsity_k = default(coor_descent_sparsity_k, dim_hidden // 10)
+        self.coor_descent_eps = coor_descent_eps
+
+        self.proj_in = nn.Sequential(
+            nn.LayerNorm(dim),
+            nn.Linear(dim, dim_hidden),
+        )
+
+        self.proj_out = nn.Linear(dim_hidden, dim)
+
+    def forward(self, x):
+        x = self.proj_in(x)
+
+        if self.use_coor_descent:
+            x = triton_coor_descent(
+                x,
+                n_iters = self.coor_descent_iters,
+                k = self.coor_descent_sparsity_k,
+                eps = self.coor_descent_eps,
+                checkpoint_segments = self.coor_descent_iters // 10
+            )
+        else:
+            x = F.gelu(x)
+
+        return self.proj_out(x)
 
 class Attention(nn.Module):
     def __init__(
@@ -134,9 +167,11 @@ class Transformer(nn.Module):
         dim_head = 64,
         heads = 8,
         ff_mult = 4,
-        use_coor_descent = False,
+        attn_use_coor_descent = False,
+        ff_use_coor_descent = False,
+        attn_coor_descent_sparsity_k = 2,
+        ff_coor_descent_sparsity_k = 2,
         coor_descent_iters = 15,
-        coor_descent_sparsity_k = 2,
         coor_descent_eps = 1e-1,
         attn_null_kv = 0,
         learned_sparsity_k = False
@@ -148,20 +183,31 @@ class Transformer(nn.Module):
         self.pos_emb = nn.Embedding(seq_len, dim)
 
         self.layers = nn.ModuleList([])
+
+        coor_kwargs = dict(
+            coor_descent_iters = coor_descent_iters,
+            coor_descent_eps = coor_descent_eps,
+        )
+
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
                 Attention(
                     dim,
                     dim_head = dim_head,
                     heads = heads,
-                    use_coor_descent = use_coor_descent,
-                    coor_descent_iters = coor_descent_iters,
-                    coor_descent_sparsity_k = coor_descent_sparsity_k,
-                    coor_descent_eps = coor_descent_eps,
+                    use_coor_descent = attn_use_coor_descent,
+                    coor_descent_sparsity_k = attn_coor_descent_sparsity_k,
                     attn_null_kv = attn_null_kv,
-                    learned_sparsity_k = learned_sparsity_k
+                    learned_sparsity_k = learned_sparsity_k,
+                    **coor_kwargs
                 ),
-                FeedForward(dim, ff_mult)
+                FeedForward(
+                    dim,
+                    ff_mult,
+                    use_coor_descent = ff_use_coor_descent,
+                    coor_descent_sparsity_k = ff_coor_descent_sparsity_k,
+                    **coor_kwargs
+                )
             ]))
 
         self.to_logits = nn.Sequential(

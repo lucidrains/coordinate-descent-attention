@@ -46,8 +46,8 @@ logits = model(x)
 ## Todo
 
 - [x] let the network control sparsity k
+- [x] try coordinate descent with a few set sparsity levels for the hidden layer of the feedforward
 - [ ] ablate with topk attention, make sure it isn't because of hard attention
-- [ ] try coordinate descent with a few set sparsity levels for the hidden layer of the feedforward
 
 ## Citations
 
