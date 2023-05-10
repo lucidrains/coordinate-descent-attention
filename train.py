@@ -42,10 +42,11 @@ model = Transformer(
     dim = 512,
     depth = 8,
     seq_len = SEQ_LEN,
-    use_coor_descent = True,
-    coor_descent_iters = 15,
-    coor_descent_sparsity_k = 4,
-    learned_sparsity_k = True
+    attn_use_coor_descent = True,
+    ff_use_coor_descent = True,
+    attn_coor_descent_sparsity_k = 2,
+    ff_coor_descent_sparsity_k = 128,
+    coor_descent_iters = 25
 )
 
 model = AutoregressiveWrapper(model).cuda()

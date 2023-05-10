@@ -35,7 +35,7 @@ model = Transformer(
     seq_len = 2048,
     dim_head = 64,
     heads = 8,
-    use_coor_descent = True   # set to True to switch from softmax to coordinate descent on qk similarity matrix
+    attn_use_coor_descent = True   # set to True to switch from softmax to coordinate descent on qk similarity matrix
 ).cuda()
 
 x = torch.randint(0, 256, (1, 2048)).cuda()
@@ -46,8 +46,8 @@ logits = model(x)
 ## Todo
 
 - [x] let the network control sparsity k
+- [x] try coordinate descent with a few set sparsity levels for the hidden layer of the feedforward
 - [ ] ablate with topk attention, make sure it isn't because of hard attention
-- [ ] try coordinate descent with a few set sparsity levels for the hidden layer of the feedforward
 
 ## Citations
 
