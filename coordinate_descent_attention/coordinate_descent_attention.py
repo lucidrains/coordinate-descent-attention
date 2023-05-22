@@ -23,9 +23,11 @@ class FeedForward(nn.Module):
         dim,
         mult = 4,
         use_coor_descent = False,
-        coor_descent_iters = 50,
+        coor_descent_iters = 20,
         coor_descent_sparsity_k = None,
         coor_descent_eps = 1e-1,
+        coor_descent_eps_init = 4.,
+        coor_descent_eps_decay = 0.7,
     ):
         super().__init__()
 
@@ -36,6 +38,8 @@ class FeedForward(nn.Module):
         self.coor_descent_iters = coor_descent_iters
         self.coor_descent_sparsity_k = default(coor_descent_sparsity_k, dim_hidden // 10)
         self.coor_descent_eps = coor_descent_eps
+        self.coor_descent_eps_init = coor_descent_eps_init
+        self.coor_descent_eps_decay = coor_descent_eps_decay
 
         self.proj_in = nn.Sequential(
             nn.LayerNorm(dim),
@@ -53,7 +57,9 @@ class FeedForward(nn.Module):
                 n_iters = self.coor_descent_iters,
                 k = self.coor_descent_sparsity_k,
                 eps = self.coor_descent_eps,
-                checkpoint_segments = self.coor_descent_iters // 10
+                eps_init = self.coor_descent_eps_init,
+                eps_decay = eslf.coor_descent_eps_decay,
+                checkpoint_segments = self.coor_descent_iters // 5
             )
         else:
             x = F.gelu(x)
@@ -67,9 +73,11 @@ class Attention(nn.Module):
         dim_head = 64,
         heads = 8,
         use_coor_descent = False,
-        coor_descent_iters = 50,
+        coor_descent_iters = 20,
         coor_descent_sparsity_k = 1,
         coor_descent_eps = 1e-1,
+        coor_descent_eps_init = 4.,
+        coor_descent_eps_decay = 0.7,
         attn_null_kv = 0,
         learned_sparsity_k = False
     ):
@@ -82,7 +90,10 @@ class Attention(nn.Module):
 
         self.coor_descent_iters = coor_descent_iters
         self.coor_descent_sparsity_k = coor_descent_sparsity_k
+
         self.coor_descent_eps = coor_descent_eps
+        self.coor_descent_eps_init = coor_descent_eps_init
+        self.coor_descent_eps_decay = coor_descent_eps_decay
 
         self.to_learned_k = None
         if learned_sparsity_k:
@@ -137,8 +148,10 @@ class Attention(nn.Module):
                 n_iters = self.coor_descent_iters,
                 k = sparsity_k,
                 eps = self.coor_descent_eps,
+                eps_decay = self.coor_descent_eps_decay,
+                eps_init = self.coor_descent_eps_init,
                 mask = ~causal_mask,
-                checkpoint_segments = self.coor_descent_iters // 10
+                checkpoint_segments = self.coor_descent_iters // 5
             )
 
         else:
