@@ -48,6 +48,7 @@ logits = model(x)
 - [x] let the network control sparsity k
 - [x] try coordinate descent with a few set sparsity levels for the hidden layer of the feedforward
 - [ ] ablate with topk attention, make sure it isn't because of hard attention
+- [ ] try using coordinate descent routing on low rank attention heads, route from high rank
 
 ## Citations
 
